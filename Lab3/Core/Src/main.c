@@ -47,7 +47,14 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 uint32_t InputCapture[IC_Buffer_Size];
 float averageRisingPeriod;
-uint32_t duty = 500;
+uint32_t duty = 50;
+uint32_t MotorsetDuty = 100;
+uint8_t MotorControlEnable = 1; //1 on 0 off
+
+float MotorSetPRM = 10;
+float MotorReadRPM = 0;
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
