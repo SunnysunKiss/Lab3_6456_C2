@@ -47,11 +47,11 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 uint32_t InputCapture[IC_Buffer_Size];
 float averageRisingPeriod;
-uint32_t duty = 50;
-uint32_t MotorsetDuty = 100;
-uint8_t MotorControlEnable = 1; //1 on 0 off
+uint32_t duty = 1000;
+uint32_t MotorsetDuty = 0;
+uint8_t MotorControlEnable = 0; //1 on 0 off
 
-float MotorSetPRM = 10;
+float MotorSetPRM = 0;
 float MotorReadRPM = 0;
 
 
@@ -105,7 +105,7 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim2);
-  HAL_TIM_IC_Start_DMA(&htim2, TIM_CHANNEL_1, InputCapture, IC_BUFFER_SIZE);
+  HAL_TIM_IC_Start_DMA(&htim2, TIM_CHANNEL_1, InputCapture, IC_Buffer_Size);
 
   HAL_TIM_Base_Start(&htim1);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
@@ -120,12 +120,33 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  static uint32_t timestamp = 0;
-	  if(HAL_GetTick()>= timestamp){
-		  timestamp = hal_gettick()+500;
-		  avergeRisingPeriod = IC_Calc_Period();
+	  if(HAL_GetTick()>= timestamp)
+	  {
+		  timestamp = HAL_GetTick()+500;
 
-		  __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty);
+		  if(MotorControlEnable == 0) //off
+		  {
 
+			  duty = MotorsetDuty*10;
+			  __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty);
+			  MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768);
+
+		  }
+		  else if(MotorControlEnable == 1) //on
+		  {
+			  duty = MotorSetPRM*10;
+			  __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty);
+			  MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768);
+			  if(MotorReadRPM < MotorSetPRM) //read less than set
+			  {
+				duty = duty+10; // resolution 1% , I have 1000 so 1% of 1000 = 10
+			  }
+			  else if(MotorReadRPM > MotorSetPRM) //read more than set
+			  {
+				duty = duty-10;
+			  }
+
+		  }
 
 	  }
   }
@@ -378,21 +399,23 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-float IC_Clac_Period(){
-	uint32_t currentDMApointer = IC_BUFFER_SIZE - __HAL_DMA_GET_COUNTER((htim2.hdma[1]));
-	uint32_t lastValidDMApointer = (currentDMApointer -1 + IC_BUFFER_SIZE) % IC_BUFFER_SIZE;
-	uint32_t i = (lastValidDMApointer +  IC_BUFFER_SIZE - 11) % IC_BUFFER_SIZE;
+//
+float IC_Calc_Period()
+{
+	uint32_t currentDMApointer = IC_Buffer_Size - __HAL_DMA_GET_COUNTER((htim2.hdma[1]));
+	uint32_t lastValidDMApointer = (currentDMApointer -1 + IC_Buffer_Size) % IC_Buffer_Size;
+	uint32_t i = (lastValidDMApointer +  IC_Buffer_Size - 5) % IC_Buffer_Size;
 
 	int32_t sumdiff = 0;
 	while (i != lastValidDMApointer)
 	{
-		uint32_t firstCapture = InputCaptureBuffer[i] ;
+		uint32_t firstCapture = InputCapture[i];
 
-		uint32_t nextCapture = InputCaptureBuffer[(i+1)%IC_BUFFER_SIZE];
+		uint32_t nextCapture = InputCapture[(i+1)%IC_Buffer_Size];
 		sumdiff += nextCapture - firstCapture ;
-		i = (i+1) % IC_BUFFER_SIZE;
+		i = (i+1) % IC_Buffer_Size;
 	}
-	return sumdiff/ 10.0;
+	return sumdiff/ 5.0;
 
 }
 /* USER CODE END 4 */
