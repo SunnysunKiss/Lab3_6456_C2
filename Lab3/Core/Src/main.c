@@ -41,25 +41,27 @@
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
+DMA_HandleTypeDef hdma_tim2_ch1;
 
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 uint32_t InputCapture[IC_Buffer_Size];
-float averageRisingPeriod;
+
 uint32_t duty = 1000;
 uint32_t MotorsetDuty = 0;
 uint8_t MotorControlEnable = 0; //1 on 0 off
 
 float MotorSetPRM = 0;
 float MotorReadRPM = 0;
-
+int t =0;
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM1_Init(void);
@@ -100,6 +102,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_TIM2_Init();
   MX_TIM1_Init();
@@ -121,34 +124,36 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  static uint32_t timestamp = 0;
 	  if(HAL_GetTick()>= timestamp)
-	  {
+	{
 		  timestamp = HAL_GetTick()+500;
 
 		  if(MotorControlEnable == 0) //off
-		  {
-
-			  duty = MotorsetDuty*10;
-			  __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty);
-			  MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768);
-
-		  }
+		{
+			duty = MotorsetDuty*10;
+			__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty);
+			MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768);
+			t=30;
+		}
 		  else if(MotorControlEnable == 1) //on
-		  {
-			  duty = MotorSetPRM*10;
-			  __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty);
-			  MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768);
-			  if(MotorReadRPM < MotorSetPRM) //read less than set
-			  {
-				duty = duty+10; // resolution 1% , I have 1000 so 1% of 1000 = 10
-			  }
-			  else if(MotorReadRPM > MotorSetPRM) //read more than set
-			  {
+		{
+		//duty = MotorSetPRM*10;
+			  if(MotorReadRPM < MotorSetPRM*0.97) //read less than set low boudery
+			 {
+			  	duty = duty+10; // resolution 1% , I have 1000 so 1% of 1000 = 10
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty);
+				MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768);
+				t=1;
+			 }
+			  else if(MotorReadRPM > MotorSetPRM*1.03) //read more than set high boudery
+			 {
 				duty = duty-10;
-			  }
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty);
+				MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768);
+				t=2;
+			 }
+		}
 
-		  }
-
-	  }
+	}
   }
   /* USER CODE END 3 */
 }
@@ -362,6 +367,22 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 2 */
 
   /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Stream5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
 
 }
 
