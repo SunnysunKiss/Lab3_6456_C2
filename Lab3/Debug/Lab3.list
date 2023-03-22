@@ -1181,6 +1181,9 @@ int main(void)
   MX_TIM1_Init();
  8000e44:	f000 f986 	bl	8001154 <MX_TIM1_Init>
   /* USER CODE BEGIN 2 */
+
+  //start all DMA that use
+
   HAL_TIM_Base_Start(&htim2);
  8000e48:	4881      	ldr	r0, [pc, #516]	; (8001050 <main+0x228>)
  8000e4a:	f002 f8e7 	bl	800301c <HAL_TIM_Base_Start>
@@ -1198,11 +1201,11 @@ int main(void)
  8000e60:	2100      	movs	r1, #0
  8000e62:	487d      	ldr	r0, [pc, #500]	; (8001058 <main+0x230>)
  8000e64:	f002 f98e 	bl	8003184 <HAL_TIM_PWM_Start>
-  {
-    /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
 	  static uint32_t timestamp = 0;
+	  //make everything working under 2Hz.
 	  if(HAL_GetTick()>= timestamp)
  8000e68:	f000 fdc4 	bl	80019f4 <HAL_GetTick>
  8000e6c:	4602      	mov	r2, r0
@@ -1218,7 +1221,7 @@ int main(void)
  8000e80:	4a76      	ldr	r2, [pc, #472]	; (800105c <main+0x234>)
  8000e82:	6013      	str	r3, [r2, #0]
 
-		  if(MotorControlEnable == 0) //off
+		  if(MotorControlEnable == 0) //off mode 1.Control Duty
  8000e84:	4b76      	ldr	r3, [pc, #472]	; (8001060 <main+0x238>)
  8000e86:	781b      	ldrb	r3, [r3, #0]
  8000e88:	2b00      	cmp	r3, #0
@@ -1234,13 +1237,13 @@ int main(void)
  8000e98:	461a      	mov	r2, r3
  8000e9a:	4b73      	ldr	r3, [pc, #460]	; (8001068 <main+0x240>)
  8000e9c:	601a      	str	r2, [r3, #0]
-			__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty);
+			__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty); //demand PWM in TIM1
  8000e9e:	4b6e      	ldr	r3, [pc, #440]	; (8001058 <main+0x230>)
  8000ea0:	681b      	ldr	r3, [r3, #0]
  8000ea2:	4a71      	ldr	r2, [pc, #452]	; (8001068 <main+0x240>)
  8000ea4:	6812      	ldr	r2, [r2, #0]
  8000ea6:	635a      	str	r2, [r3, #52]	; 0x34
-			MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768);
+			MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768); //calculate RPM
  8000ea8:	f000 fb1e 	bl	80014e8 <IC_Calc_Period>
  8000eac:	ee10 3a10 	vmov	r3, s0
  8000eb0:	4618      	mov	r0, r3
@@ -1268,13 +1271,13 @@ int main(void)
  8000eec:	4603      	mov	r3, r0
  8000eee:	4a61      	ldr	r2, [pc, #388]	; (8001074 <main+0x24c>)
  8000ef0:	6013      	str	r3, [r2, #0]
-			t=30;
+			t=30; // status check
  8000ef2:	4b61      	ldr	r3, [pc, #388]	; (8001078 <main+0x250>)
  8000ef4:	221e      	movs	r2, #30
  8000ef6:	601a      	str	r2, [r3, #0]
  8000ef8:	e7b6      	b.n	8000e68 <main+0x40>
 		}
-		  else if(MotorControlEnable == 1) //on
+		  else if(MotorControlEnable == 1) //on mode 2.Control RPM
  8000efa:	4b59      	ldr	r3, [pc, #356]	; (8001060 <main+0x238>)
  8000efc:	781b      	ldrb	r3, [r3, #0]
  8000efe:	2b01      	cmp	r3, #1
@@ -1310,13 +1313,13 @@ int main(void)
  8000f3a:	330a      	adds	r3, #10
  8000f3c:	4a4a      	ldr	r2, [pc, #296]	; (8001068 <main+0x240>)
  8000f3e:	6013      	str	r3, [r2, #0]
-				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty);
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty); //demand PWM in TIM1
  8000f40:	4b45      	ldr	r3, [pc, #276]	; (8001058 <main+0x230>)
  8000f42:	681b      	ldr	r3, [r3, #0]
  8000f44:	4a48      	ldr	r2, [pc, #288]	; (8001068 <main+0x240>)
  8000f46:	6812      	ldr	r2, [r2, #0]
  8000f48:	635a      	str	r2, [r3, #52]	; 0x34
-				MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768);
+				MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768); //calculate RPM
  8000f4a:	f000 facd 	bl	80014e8 <IC_Calc_Period>
  8000f4e:	ee10 3a10 	vmov	r3, s0
  8000f52:	4618      	mov	r0, r3
@@ -1344,7 +1347,7 @@ int main(void)
  8000f8e:	4603      	mov	r3, r0
  8000f90:	4a38      	ldr	r2, [pc, #224]	; (8001074 <main+0x24c>)
  8000f92:	6013      	str	r3, [r2, #0]
-				t=1;
+				t=1;// status check
  8000f94:	4b38      	ldr	r3, [pc, #224]	; (8001078 <main+0x250>)
  8000f96:	2201      	movs	r2, #1
  8000f98:	601a      	str	r2, [r3, #0]
@@ -1379,13 +1382,13 @@ int main(void)
  8000fd4:	3b0a      	subs	r3, #10
  8000fd6:	4a24      	ldr	r2, [pc, #144]	; (8001068 <main+0x240>)
  8000fd8:	6013      	str	r3, [r2, #0]
-				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty);
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty); //demand PWM in TIM1
  8000fda:	4b1f      	ldr	r3, [pc, #124]	; (8001058 <main+0x230>)
  8000fdc:	681b      	ldr	r3, [r3, #0]
  8000fde:	4a22      	ldr	r2, [pc, #136]	; (8001068 <main+0x240>)
  8000fe0:	6812      	ldr	r2, [r2, #0]
  8000fe2:	635a      	str	r2, [r3, #52]	; 0x34
-				MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768);
+				MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768); //calculate RPM
  8000fe4:	f000 fa80 	bl	80014e8 <IC_Calc_Period>
  8000fe8:	ee10 3a10 	vmov	r3, s0
  8000fec:	4618      	mov	r0, r3
@@ -1413,7 +1416,7 @@ int main(void)
  8001028:	4603      	mov	r3, r0
  800102a:	4a12      	ldr	r2, [pc, #72]	; (8001074 <main+0x24c>)
  800102c:	6013      	str	r3, [r2, #0]
-				t=2;
+				t=2;// status check
  800102e:	4b12      	ldr	r3, [pc, #72]	; (8001078 <main+0x250>)
  8001030:	2202      	movs	r2, #2
  8001032:	601a      	str	r2, [r3, #0]
@@ -2177,20 +2180,21 @@ static void MX_GPIO_Init(void)
 080014e8 <IC_Calc_Period>:
 
 /* USER CODE BEGIN 4 */
-//
+// USE data to find average value
+
 float IC_Calc_Period()
 {
  80014e8:	b580      	push	{r7, lr}
  80014ea:	b086      	sub	sp, #24
  80014ec:	af00      	add	r7, sp, #0
-	uint32_t currentDMApointer = IC_Buffer_Size - __HAL_DMA_GET_COUNTER((htim2.hdma[1]));
+	uint32_t currentDMApointer = IC_Buffer_Size - __HAL_DMA_GET_COUNTER((htim2.hdma[1])); // check position that dma will collect
  80014ee:	4b32      	ldr	r3, [pc, #200]	; (80015b8 <IC_Calc_Period+0xd0>)
  80014f0:	6a5b      	ldr	r3, [r3, #36]	; 0x24
  80014f2:	681b      	ldr	r3, [r3, #0]
  80014f4:	685b      	ldr	r3, [r3, #4]
  80014f6:	f1c3 0314 	rsb	r3, r3, #20
  80014fa:	60fb      	str	r3, [r7, #12]
-	uint32_t lastValidDMApointer = (currentDMApointer -1 + IC_Buffer_Size) % IC_Buffer_Size;
+	uint32_t lastValidDMApointer = (currentDMApointer -1 + IC_Buffer_Size) % IC_Buffer_Size; //floding value
  80014fc:	68fb      	ldr	r3, [r7, #12]
  80014fe:	f103 0213 	add.w	r2, r3, #19
  8001502:	4b2e      	ldr	r3, [pc, #184]	; (80015bc <IC_Calc_Period+0xd4>)
@@ -2218,7 +2222,7 @@ float IC_Calc_Period()
 	int32_t sumdiff = 0;
  8001530:	2300      	movs	r3, #0
  8001532:	613b      	str	r3, [r7, #16]
-	while (i != lastValidDMApointer)
+	while (i != lastValidDMApointer) //find delta value
  8001534:	e025      	b.n	8001582 <IC_Calc_Period+0x9a>
 	{
 		uint32_t firstCapture = InputCapture[i];
@@ -2260,13 +2264,13 @@ float IC_Calc_Period()
  800157c:	009b      	lsls	r3, r3, #2
  800157e:	1ad3      	subs	r3, r2, r3
  8001580:	617b      	str	r3, [r7, #20]
-	while (i != lastValidDMApointer)
+	while (i != lastValidDMApointer) //find delta value
  8001582:	697a      	ldr	r2, [r7, #20]
  8001584:	68bb      	ldr	r3, [r7, #8]
  8001586:	429a      	cmp	r2, r3
  8001588:	d1d5      	bne.n	8001536 <IC_Calc_Period+0x4e>
 	}
-	return sumdiff/ 5.0;
+	return sumdiff/ 5.0; //return average
  800158a:	6938      	ldr	r0, [r7, #16]
  800158c:	f7fe ff76 	bl	800047c <__aeabi_i2d>
  8001590:	f04f 0200 	mov.w	r2, #0

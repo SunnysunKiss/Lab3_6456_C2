@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#define IC_Buffer_Size 20
+#define IC_Buffer_Size 20 //make variable for input capture size
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,8 +46,10 @@ DMA_HandleTypeDef hdma_tim2_ch1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-uint32_t InputCapture[IC_Buffer_Size];
 
+uint32_t InputCapture[IC_Buffer_Size]; //make array for input capture
+
+//declare all of the variable
 uint32_t duty = 1000;
 uint32_t MotorsetDuty = 0;
 uint8_t MotorControlEnable = 0; //1 on 0 off
@@ -66,7 +68,7 @@ static void MX_USART2_UART_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
-float IC_Calc_Period();
+float IC_Calc_Period(); //make function footprint
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -107,6 +109,9 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
+
+  //start all DMA that use
+
   HAL_TIM_Base_Start(&htim2);
   HAL_TIM_IC_Start_DMA(&htim2, TIM_CHANNEL_1, InputCapture, IC_Buffer_Size);
 
@@ -122,34 +127,36 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
 	  static uint32_t timestamp = 0;
+	  //make everything working under 2Hz.
 	  if(HAL_GetTick()>= timestamp)
 	{
 		  timestamp = HAL_GetTick()+500;
 
-		  if(MotorControlEnable == 0) //off
+		  if(MotorControlEnable == 0) //off mode 1.Control Duty
 		{
 			duty = MotorsetDuty*10;
-			__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty);
-			MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768);
-			t=30;
+			__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty); //demand PWM in TIM1
+			MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768); //calculate RPM
+			t=30; // status check
 		}
-		  else if(MotorControlEnable == 1) //on
+		  else if(MotorControlEnable == 1) //on mode 2.Control RPM
 		{
 		//duty = MotorSetPRM*10;
 			  if(MotorReadRPM < MotorSetPRM*0.97) //read less than set low boudery
 			 {
 			  	duty = duty+10; // resolution 1% , I have 1000 so 1% of 1000 = 10
-				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty);
-				MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768);
-				t=1;
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty); //demand PWM in TIM1
+				MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768); //calculate RPM
+				t=1;// status check
 			 }
 			  else if(MotorReadRPM > MotorSetPRM*1.03) //read more than set high boudery
 			 {
 				duty = duty-10;
-				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty);
-				MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768);
-				t=2;
+				__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,duty); //demand PWM in TIM1
+				MotorReadRPM = 60/(IC_Calc_Period() * 0.000001*768); //calculate RPM
+				t=2;// status check
 			 }
 		}
 
@@ -420,15 +427,16 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-//
+// USE data to find average value
+
 float IC_Calc_Period()
 {
-	uint32_t currentDMApointer = IC_Buffer_Size - __HAL_DMA_GET_COUNTER((htim2.hdma[1]));
-	uint32_t lastValidDMApointer = (currentDMApointer -1 + IC_Buffer_Size) % IC_Buffer_Size;
+	uint32_t currentDMApointer = IC_Buffer_Size - __HAL_DMA_GET_COUNTER((htim2.hdma[1])); // check position that dma will collect
+	uint32_t lastValidDMApointer = (currentDMApointer -1 + IC_Buffer_Size) % IC_Buffer_Size; //floding value
 	uint32_t i = (lastValidDMApointer +  IC_Buffer_Size - 5) % IC_Buffer_Size;
 
 	int32_t sumdiff = 0;
-	while (i != lastValidDMApointer)
+	while (i != lastValidDMApointer) //find delta value
 	{
 		uint32_t firstCapture = InputCapture[i];
 
@@ -436,7 +444,7 @@ float IC_Calc_Period()
 		sumdiff += nextCapture - firstCapture ;
 		i = (i+1) % IC_Buffer_Size;
 	}
-	return sumdiff/ 5.0;
+	return sumdiff/ 5.0; //return average
 
 }
 /* USER CODE END 4 */
